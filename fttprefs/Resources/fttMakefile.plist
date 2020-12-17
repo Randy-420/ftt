@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.randy420.fttprefs</string>
+			<key>key</key>
+			<string>armv7</string>
+			<key>label</key>
+			<string>Arm7 Support</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.randy420.fttprefs</string>
+			<key>key</key>
+			<string>armv7s</string>
+			<key>label</key>
+			<string>Armv7s Support</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.randy420.fttprefs</string>
+			<key>key</key>
+			<string>arm64e</string>
+			<key>label</key>
+			<string>Arm64e Support</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.randy420.fttprefs</string>
+			<key>key</key>
+			<string>arm64</string>
+			<key>label</key>
+			<string>Arm64 Support</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>isStaticText</key>
+			<true/>
+			<key>label</key>
+			<string>Choose which devices your project will compile for.
+
+If you turn all 3 off, it will automatically use arm64 and arm64e to avoid breaking packages.</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Flex to Theos Makefile settings</string>
+</dict>
+</plist>
