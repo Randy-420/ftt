@@ -1,9 +1,7 @@
 #import <TargetConditionals.h>
 #import "include/420.h"
 
-NSMutableDictionary *MutDiction;
-
-#define prefs @"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist"
+#define PREFS @"com.randy420.fttprefs"
 
 #if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
@@ -91,7 +89,7 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 			[implArgList appendString:@")"];
 			[justArgCall appendString:@")"];
 			[justArgType appendString:@")"];
-			
+
 			BOOL callsOrig = NO;
 
 			NSMutableString *implBody = [NSMutableString string];
@@ -102,7 +100,7 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 					[implBody appendFormat:@"    // %@\n", smartComment];
 				}
 			}
-			
+
 			NSArray *allOverrides = unit[@"overrides"];
 			for (NSDictionary *override in allOverrides) {
 				if (override.count == 0) {
@@ -121,114 +119,120 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 						NSString *restrict colorBase = @"[UIColor colorWithRed:%@/255.0 green:%@/255.0 blue:%@/255.0 alpha:%@/255.0]";
 						origValue = [NSString stringWithFormat:colorBase, color[0], color[1], color[2], color[3]];
 						*uikit = YES;
-											} else {
-												origValue = [NSString stringWithFormat:@"@\"%@\"", origValue];
-											}
-										}
-										int argument = [override[@"argument"] intValue];
-										if (argument == 0) {
-											[implBody appendFormat:@"    return %@;\n", origValue];
-											break;
-										} else {
-											[implBody appendFormat:@"    arg%i = %@;\n", argument, origValue];
-										}
-									}
-
-									NSUInteger overrideCount = allOverrides.count;
-									if (overrideCount == 0 || [allOverrides.firstObject[@"argument"] intValue] > 0) {
-										if ([bashedMethodTypeValue isEqualToString:@"-(void"]) {
-											if (overrideCount > 0) {
-												if (logos) {
-													[implBody appendString:@"    %orig;\n"];
-													} else {
-														callsOrig = YES;
-														[implBody appendFormat:@"    %@%@;\n", origImplName, justArgCall];
-													}
-												}
-											} else {
-												if (logos) {
-													[implBody appendString:@"    return %orig;\n"];
-											} else {
-												callsOrig = YES;
-												[implBody appendFormat:@"    return %@%@;\n", origImplName, justArgCall];
-											}
-										}
-									}
-
-									if (callsOrig) {
-										[xm appendFormat:@"static %@ (*%@)%@;\n", returnType, origImplName, justArgType];
-									}
-
-									if (logos) {
-										[xm appendFormat:@"%%hook %@\n%@ {\n%@}\n%%end\n\n", cleanClassName, realMethodName, implBody];
-									} else {
-										[xm appendFormat:@"static %@ %@%@ {\n%@}\n\n", returnType, patchImplName, implArgList, implBody];
-									}
-
-									NSString *internalClassName = [NSString stringWithFormat:@"_ftt_class_%@", cleanClassName];
-
-									if (logos) {
-										if ([className containsString:@"."]) {
-											if (![usedSwiftClasses containsObject:className]) {
-												[usedSwiftClasses addObject:className];
-											}
-										}
-									} else {
-										if (![usedClasses containsObject:className]) {
-											[constructor appendFormat:@"    Class %@ = objc_getClass(\"%@\");\n", internalClassName, className];
-											[usedClasses addObject:className];
-										}
-
-										if (isClassMethod) {
-											NSString *metaClassName = [@"_ftt_metaClass" stringByAppendingString:internalClassName];
-											if (![usedMetaClasses containsObject:metaClassName]) {
-												[constructor appendFormat:@"    Class %@ = object_getClass(%@);\n", metaClassName, internalClassName];
-												[usedMetaClasses addObject:metaClassName];
-											}
-											internalClassName = metaClassName;
-										}
-
-										[constructor appendFormat:@"    MSHookMessageEx(%@, @selector(%@), (IMP)%@, ", internalClassName, selectorName, patchImplName];
-  
-										if (callsOrig) {
-											[constructor appendFormat:@"(IMP *)%@", origImplName];
-										} else {
-											[constructor appendString:@"NULL"];
-										}
-										[constructor appendString:@");\n"];
-									}
-								}
-
-								if (logos) {
-									if (usedSwiftClasses.count) {
-										[xm appendString:@"%ctor {\n    %init("];
-										NSString *lastClass = usedSwiftClasses.lastObject;
-
-								for (NSString *className in usedSwiftClasses) {
-									NSString *comma = [className isEqualToString:lastClass] ? @");\n" : @",\n";
-									NSString *patchedClassName = [className stringByReplacingOccurrencesOfString:@"." withString:swiftPatchStr];
-									[xm appendFormat:@"%@ = objc_getClass(\"%@\")%@", patchedClassName, className, comma];
-								}
-								[xm appendString:@"\n}\n"];
-							}
-						} else {
-							[constructor appendString:@"}\n"];
-							[xm appendString:constructor];
-						}
-
-						ret = [NSString stringWithString:xm];
+					} else {
+						origValue = [NSString stringWithFormat:@"@\"%@\"", origValue];
 					}
-    
-					return ret;
+				}
+				int argument = [override[@"argument"] intValue];
+				if (argument == 0) {
+					[implBody appendFormat:@"    return %@;\n", origValue];
+					break;
+				} else {
+					[implBody appendFormat:@"    arg%i = %@;\n", argument, origValue];
+				}
+			}
+
+			NSUInteger overrideCount = allOverrides.count;
+			if (overrideCount == 0 || [allOverrides.firstObject[@"argument"] intValue] > 0) {
+				if ([bashedMethodTypeValue isEqualToString:@"-(void"]) {
+					if (overrideCount > 0) {
+						if (logos) {
+							[implBody appendString:@"    %orig;\n"];
+						} else {
+							callsOrig = YES;
+							[implBody appendFormat:@"    %@%@;\n", origImplName, justArgCall];
+						}
+					}
+				} else {
+					if (logos) {
+						[implBody appendString:@"    return %orig;\n"];
+					} else {
+						callsOrig = YES;
+						[implBody appendFormat:@"    return %@%@;\n", origImplName, justArgCall];
+					}
+				}
+			}
+
+			if (callsOrig) {
+				[xm appendFormat:@"static %@ (*%@)%@;\n", returnType, origImplName, justArgType];
+			}
+
+			if (logos) {
+				[xm appendFormat:@"%%hook %@\n%@ {\n%@}\n%%end\n\n", cleanClassName, realMethodName, implBody];
+			} else {
+				[xm appendFormat:@"static %@ %@%@ {\n%@}\n\n", returnType, patchImplName, implArgList, implBody];
+			}
+			NSString *internalClassName = [NSString stringWithFormat:@"_ftt_class_%@", cleanClassName];
+			if (logos) {
+				if ([className containsString:@"."]) {
+					if (![usedSwiftClasses containsObject:className]) {
+						[usedSwiftClasses addObject:className];
+					}
+				}
+			} else {
+				if (![usedClasses containsObject:className]) {
+					[constructor appendFormat:@"    Class %@ = objc_getClass(\"%@\");\n", internalClassName, className];
+					[usedClasses addObject:className];
 				}
 
+				if (isClassMethod) {
+					NSString *metaClassName = [@"_ftt_metaClass" stringByAppendingString:internalClassName];
+					if (![usedMetaClasses containsObject:metaClassName]) {
+						[constructor appendFormat:@"    Class %@ = object_getClass(%@);\n", metaClassName, internalClassName];
+						[usedMetaClasses addObject:metaClassName];
+					}
+					internalClassName = metaClassName;
+				}
+
+				[constructor appendFormat:@"    MSHookMessageEx(%@, @selector(%@), (IMP)%@, ", internalClassName, selectorName, patchImplName];
+  
+				if (callsOrig) {
+					[constructor appendFormat:@"(IMP *)%@", origImplName];
+				} else {
+					[constructor appendString:@"NULL"];
+				}
+				[constructor appendString:@");\n"];
+			}
+		}
+
+		if (logos) {
+			if (usedSwiftClasses.count) {
+				[xm appendString:@"%ctor {\n    %init("];
+				NSString *lastClass = usedSwiftClasses.lastObject;
+
+				for (NSString *className in usedSwiftClasses) {
+					NSString *comma = [className isEqualToString:lastClass] ? @");\n" : @",\n";
+					NSString *patchedClassName = [className stringByReplacingOccurrencesOfString:@"." withString:swiftPatchStr];
+					[xm appendFormat:@"%@ = objc_getClass(\"%@\")%@", patchedClassName, className, comma];
+				}
+				[xm appendString:@"\n}\n"];
+			}
+		} else {
+			[constructor appendString:@"}\n"];
+			[xm appendString:constructor];
+		}
+		ret = [NSString stringWithString:xm];
+	}
+	return ret;
+}
+
+static NSString *GetNSString(NSString *pkey, NSString *defaultValue, NSString *plst){
+	NSMutableDictionary *Dict = [NSMutableDictionary dictionaryWithDictionary:[NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"/var/mobile/Library/Preferences/%@.plist",plst]]];
+
+	return [Dict objectForKey:pkey] ? [Dict objectForKey:pkey] : defaultValue;
+}
+
+static BOOL GetBool(NSString *pkey, BOOL defaultValue, NSString *plst) {
+	NSMutableDictionary *Dict = [NSMutableDictionary dictionaryWithDictionary:[NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"/var/mobile/Library/Preferences/%@.plist",plst]]];
+
+	return [Dict objectForKey:pkey] ? [[Dict objectForKey:pkey] boolValue] : defaultValue;
+}
 
 int main(int argc, char *argv[]) {
 #if TARGET_OS_IPHONE
 	int choice = -1;
 	BOOL dump = NO;
     
-    // should be used for testing only, not documented
 	BOOL getPlist = NO;
 #endif
 	NSString *version = @"0.0.1";
@@ -237,7 +241,7 @@ int main(int argc, char *argv[]) {
 	NSString *name;
 	NSString *patchID;
 	NSString *remote;
-	NSString *cemail;
+	NSString *email;
 	NSString *durl;
 	NSString *nversion;
 	NSString *myweb = @"https://theemeraldisle.family";
@@ -246,6 +250,10 @@ int main(int argc, char *argv[]) {
 	const char *redColor = "\x1B[31m";
 	const char *greenColor = "\x1B[32m";
 	const char *resetColor = "\x1B[0m";
+	char userDescription[400];
+	char userName[40];
+	char userEmail[50];
+	char credentials[2];
 
 	BOOL tweak = YES;
 	BOOL logos = YES;
@@ -255,18 +263,15 @@ int main(int argc, char *argv[]) {
     //by me 
 	BOOL rename = NO;
 	BOOL trigF = NO;
-	BOOL update =NO;
-	BOOL MakeTheos=NO;
-    
-	//char* myName="make";
+	BOOL update = NO;
+	BOOL MakeTheos = NO;
+	BOOL askedCredentials = NO;
 
 	_420Manager* _420 = [[_420Manager alloc] init];
 
 	FILE *hidesLog;
 
 	NSDictionary *ufile;
-    
-	MutDiction = [[NSMutableDictionary alloc] initWithContentsOfFile:prefs];
     
 	UIPasteboard *pastedboard;
     
@@ -586,10 +591,10 @@ int main(int argc, char *argv[]) {
 		NSString *Archs =@"";
 		int added = 0;
 		static bool armv7, armv7s, arm64, arm64e;
-		armv7 = [MutDiction objectForKey:@"armv7"] ? [[MutDiction objectForKey:@"armv7"]boolValue] : YES;
-		armv7s = [MutDiction objectForKey:@"armv7s"] ? [[MutDiction objectForKey:@"armv7s"]boolValue] : YES;
-		arm64 = [MutDiction objectForKey:@"arm64"]	? [[MutDiction objectForKey:@"arm64"]boolValue] : YES;
-		arm64e = [MutDiction objectForKey:@"arm64e"] ? [[MutDiction objectForKey:@"arm64e"]boolValue] : YES;
+		armv7 = GetBool(@"armv7", YES, PREFS);
+		armv7s = GetBool(@"armv7s", YES, PREFS);
+		arm64 = GetBool(@"arm64", YES, PREFS);
+		arm64e = GetBool(@"arm64e", YES, PREFS);
 
 		if(armv7) {
 			Archs = [NSString stringWithFormat:@"%@ armv7", Archs];
@@ -641,29 +646,60 @@ int main(int argc, char *argv[]) {
 		NSString *plistPath = [[sandbox stringByAppendingPathComponent:title] stringByAppendingPathExtension:@"plist"];
 		[plist writeToFile:plistPath atomically:YES];
 
-
 // Control file handling
 
 		NSString *author = patch[@"author"];
 
 		if (!author) {
-			author = [MutDiction objectForKey:@"prefName"] ? [MutDiction objectForKey:@"prefName"] : @"Randy420";
+			author = GetNSString(@"prefName", @"default", PREFS);
 
-			cemail = [MutDiction objectForKey:@"prefEmail"] ? [MutDiction objectForKey:@"prefEmail"] : @"Randy.Skinner@hotmail.com";
+			email = GetNSString(@"prefEmail", @"default@default.com", PREFS);
 		}
-		NSString *authorChar1 = [[author componentsSeparatedByCharactersInSet:charsOnly] componentsJoinedByString:@""];
-		NSString *authorChar = [authorChar1 lowercaseString];
-		NSString *LTitle = [title lowercaseString];
+		if ([author isEqualToString:@"default"]) {
+			printf("%splease enter your dev name%s\n", redColor, resetColor);
+			scanf("%39s", userName);
+			author = [NSString stringWithCString:userName encoding:1];
+			askedCredentials = YES;
+		}
+		if ([email isEqualToString:@"default@default.com"]) {
+			printf("%splease enter your email so people can contact you about issues%s\n", redColor, resetColor);
+			scanf(" %49s", userEmail);
+			email = [NSString stringWithCString:userEmail encoding:1];
+			askedCredentials = YES;
+		}
+		if (askedCredentials) {
+			printf("%sDo you want to save this information? You can edit this info in the Settings app.\n%sDev Name:%s %s\n%sEmail: %s%s%s\n\n%sY%s/%sN%s: ", cyanColor, resetColor, cyanColor, [author UTF8String], resetColor, cyanColor, [email UTF8String], resetColor, greenColor, resetColor, redColor, resetColor);
+			scanf(" %1s", credentials);
+			if ([[NSString stringWithCString:credentials encoding:1] isEqualToString:@"y"]) {
+				NSFileManager *fileManager = NSFileManager.defaultManager;
+				NSMutableDictionary *preferences;
+				if ([fileManager fileExistsAtPath:@"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist"]) {
+					preferences = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist"];
+				} else {
+					preferences = [[NSMutableDictionary alloc] init];
+				}
+				[preferences setObject:author forKey: @"prefName"];
+				[preferences setObject:email forKey: @"prefEmail"];
+				[preferences writeToFile:@"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist" atomically:YES];
+				printf("%sCredentials saved!%s\n\n", greenColor, resetColor);
+			}
+		}
+		author = [[author componentsSeparatedByCharactersInSet:charsOnly] componentsJoinedByString:@""];
+		NSString *lauthor = [author lowercaseString];
+		title = [title lowercaseString];
 		NSString *description = [patch[descriptionKey] stringByReplacingOccurrencesOfString:@"\n" withString:@"\n "];
-		NSString *Scrip;
-	
+
 		if (description.length <= 4) {
-			Scrip = @"***you may want to enter a description here...***";
-		} else {
-			Scrip = description;
+			printf("%splease enter a description for your patch: %s", redColor, resetColor);
+			scanf(" %399[^\n]s", userDescription);
+			//scanf("%399[^\n]s ", userDescription);
+			description = [NSString stringWithCString:userDescription encoding:1];
+			if (description.length <= 4) {
+				description = @"***you may want to enter a description here...***";
+			}
 		}
 
-		NSString *control = [NSString stringWithFormat:@""
+		NSString *control = [NSString stringWithFormat:@
 		"Package: com.%@.%@\n"
 		"Name: %@\n"
 		"Author: %@ <%@>\n"
@@ -672,7 +708,7 @@ int main(int argc, char *argv[]) {
 		"Maintainer: %@ <%@>\n"
 		"Architecture: iphoneos-arm\n"
 		"Section: Tweaks\n"
-		"Version: %@\n", authorChar, LTitle, name, author, cemail, Scrip, author, cemail, version];
+		"Version: %@\n", lauthor, title, name, author, email, description, author, email, version];
 		[control writeToFile:[sandbox stringByAppendingPathComponent:@"control"] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 		NSString *tweakFileName = [@"Tweak" stringByAppendingPathExtension:tweakFileExt];
 		genedCode = [genedCode stringByReplacingOccurrencesOfString:@"  " withString:@" "];
@@ -682,25 +718,16 @@ int main(int argc, char *argv[]) {
 		genedCode = [genedCode stringByReplacingOccurrencesOfString:@"return 0;" withString:@"return NO;"];*/
 		[genedCode writeToFile:[sandbox stringByAppendingPathComponent:tweakFileName] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 
-
-
-
-
-
-
-
-
 		if (output) {
 			printf("%sProject %s created in %s%s\n", greenColor, title.UTF8String, sandbox.UTF8String, resetColor);
 		}
 
 		if (MakeTheos){
-			//c_admin(myName);
 			NSString *Theos = [[NSFileManager defaultManager] currentDirectoryPath];
 			NSString *TheosMake = [NSString stringWithFormat: @"%s/%s", [Theos UTF8String] ,[sandbox UTF8String]];
 			printf("\n\n%sMaking ftt output: %s%s%s into a deb package! %s \n \n", greenColor, cyanColor, [TheosMake UTF8String], greenColor, resetColor);
 
-			[_420 RunCMD:[NSString stringWithFormat:@"cd %s;echo \"make clean package\" | GaPp;", [TheosMake UTF8String]] WaitUntilExit: YES];
+			[_420 RunCMD:[NSString stringWithFormat:@"cd %s;echo \"make clean package\" | gap;", [TheosMake UTF8String]] WaitUntilExit: YES];
 
 			NSString *package = [NSString stringWithFormat: @"%s/packages",[TheosMake UTF8String]];
 

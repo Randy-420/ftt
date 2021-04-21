@@ -1,10 +1,13 @@
 #import <Foundation/Foundation.h>
 #include <spawn.h>
-#import <UIKit/UIKit.h>@interface UIDevice ()- (id)_deviceInfoForKey:(NSString *)key;  @end@interface _420Manager : NSObject
--(void) RunCMD:(NSString *)RunCMD;
+#import <UIKit/UIKit.h>
+
+@interface UIDevice ()
+- (id)_deviceInfoForKey:(NSString *)key;  
+@end
+
+@interface _420Manager : NSObject
 -(void) RunCMD:(NSString *)RunCMD WaitUntilExit:(BOOL)WaitUntilExit;
--(NSString *) RunRoot:(NSString *)RunRoot;
--(void) RunRoot:(NSString *)RunRoot WaitUntilExit:(BOOL)WaitUntilExit;
 @end
 
 // NSTask.h

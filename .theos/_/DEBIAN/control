@@ -7,5 +7,6 @@ Homepage: https://theemeraldisle.family
 Maintainer: Randy420 <randy.skinner@hotmail.com>
 Author: ipad_kid_Randy420 <ipadkid358@gmail.com, randy.skinner@hotmail.com>
 Section: Utilities
-Version: 0.3.6
 Replaces: com.ipadkid.ftt
+Version: 0.3.6
+Installed-Size: 328

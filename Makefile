@@ -17,8 +17,5 @@ TOOL_NAME = ftt
 ftt_FILES = main.m include/420.m
 ftt_CFLAGS = -fobjc-arc
 
-SUBPROJECTS += fttprefs
-
 include $(THEOS_MAKE_PATH)/tool.mk
-
 include $(THEOS_MAKE_PATH)/aggregate.mk
