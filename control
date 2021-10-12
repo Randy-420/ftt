@@ -1,4 +1,4 @@
-Package: com.randy420.ipadkid.ftt
+Package: ru.rj.ftt
 Name: Flex To Theos
 Depends: mobilesubstrate, ws.hbang.common, com.randy420.tools (>=0.7)
 Architecture: iphoneos-arm
@@ -7,5 +7,5 @@ Homepage: https://theemeraldisle.family
 Maintainer: Randy420 <randy.skinner@hotmail.com>
 Author: ipad_kid_Randy420 <ipadkid358@gmail.com, randy.skinner@hotmail.com>
 Section: Utilities
-Version: 0.3.6
-Replaces: com.ipadkid.ftt
+Version: 0.3.7
+Replaces: com.ipadkid.ftt, com.randy420.ipadkid.ftt
