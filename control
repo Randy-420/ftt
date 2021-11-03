@@ -1,11 +1,11 @@
 Package: ru.rj.ftt
 Name: Flex To Theos
-Depends: mobilesubstrate, ws.hbang.common, com.randy420.tools (>=0.7)
+Depends: mobilesubstrate, ws.hbang.common, com.randy420.tools (>=1.6)
 Architecture: iphoneos-arm
 Description: First made by iPad_kid - then updated by myself. Change Flex 3 patches into Theos projects using simple terminal commands. Use 'ftt -?' For a full list of options.    Flex 3 beta repo - http://getdelta.co     Original flex to theos coding I found :https://github.com/ipadkid358/FlexToTheos/find/master?q=
 Homepage: https://theemeraldisle.family
 Maintainer: Randy420 <randy.skinner@hotmail.com>
 Author: ipad_kid_Randy420 <ipadkid358@gmail.com, randy.skinner@hotmail.com>
 Section: Utilities
-Version: 0.3.7
-Replaces: com.ipadkid.ftt, com.randy420.ipadkid.ftt
+Version: 0.3.8
+Replaces: com.ipadkid.ftt, com.azmilaila.ftt, com.ceadd.flextotheosbyipadkid358, com.randy420.ipadkid.ftt
