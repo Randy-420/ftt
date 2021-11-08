@@ -3,5 +3,8 @@
 .AppleDouble
 ._*
 .theos
-packages
 *.txt
+push.sh
+*.zip
+.gitignore
+.git
