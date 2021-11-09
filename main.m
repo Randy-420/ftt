@@ -223,11 +223,11 @@ int main(int argc, char *argv[]) {
 	NSString *name;
 	NSString *patchID;
 	NSString *remote;
-	NSString *cversion =@"0.3.7b1";//Randy420 add
+	NSString *cversion =@"0.6";//Randy420 add
 	NSString *email;//Randy420 add
 	NSString *durl;//Randy420 add
 	NSString *nversion;//Randy420 add
-	NSString *myweb = @"https://theemeraldisle.family";//Randy420 add
+	NSString *myweb = @"https://Randy-420.GitHub.io";//Randy420 add
 
 	NSScanner *scanner;//Randy420 add
 	NSMutableString *strippedString;//Randy420 add
@@ -413,8 +413,8 @@ int main(int argc, char *argv[]) {
 	/*Randy420 start add*/
 	if (update) {
 		printf("%sChecking for update...%s\n", greenColor, resetColor);
-
-		ufile = [NSDictionary dictionaryWithContentsOfURL:[NSURL URLWithString:@"https://randy420.squarespace.com/s/ftt.plist"]];
+		NSString *updatePath = [NSString stringWithFormat:@"%@/ftt/ftt.plist", myweb];
+		ufile = [NSDictionary dictionaryWithContentsOfURL:[NSURL URLWithString:updatePath]];
 
 		durl = ufile[@"address"];
 		nversion = ufile[@"version"];
@@ -526,9 +526,10 @@ int main(int argc, char *argv[]) {
 		NSDictionary *file;
 		NSString *firstPath = @"/var/mobile/Library/Application Support/Flex3/patches.plist";
 		NSString *secondPath = @"/var/mobile/Library/UserConfigurationProfiles/PublicInfo/Flex3Patches.plist";
+		NSString *remotePath = [NSString stringWithFormat:@"%@/ftt/patches.plist", myweb];//Randy420 add
 		if (getPlist) {
 			printf("%sUsing Randy420's patches.plist file from:\n%s%s%s\n",greenColor, cyanColor, [myweb UTF8String], resetColor);//Randy420 add
-			file = [NSDictionary dictionaryWithContentsOfURL:[NSURL URLWithString:@"https://randy420.squarespace.com/s/patches.plist"]];//Randy420 edit
+			file = [NSDictionary dictionaryWithContentsOfURL:[NSURL URLWithString:remotePath]];//Randy420 edit
 		} else if ([fileManager fileExistsAtPath:firstPath]) {
 			file = [NSDictionary dictionaryWithContentsOfFile:firstPath];
 		} else if ([fileManager fileExistsAtPath:secondPath]) {
