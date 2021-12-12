@@ -35,6 +35,7 @@
  */
 NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOOL logos) {
 	NSString *ret;
+	NSMutableArray *methodTypez = [[NSMutableArray alloc] init];//Randy420 add
 	@autoreleasepool {
 		NSMutableString *xm = [NSMutableString stringWithString:@"#import <UIKit/UIKit.h>\n\n"];
 
@@ -74,13 +75,16 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 			NSMutableString *realMethodName = [NSMutableString string];
 			[realMethodName appendString:[bashedMethodTypeValue stringByReplacingOccurrencesOfString:@"(" withString:@" ("]];
 			[realMethodName appendFormat:@")%@", [displayName[1] substringFromIndex:1]];
-
+			[methodTypez removeAllObjects];//Randy420 add
 			for (int displayId = 1; displayId < displayName.count-1; displayId++) {
 				NSArray<NSString *> *typeBreakup = [displayName[displayId] componentsSeparatedByString:@"("];
 				NSString *argType = typeBreakup.lastObject;
+
 				[implArgList appendFormat:@", %@ arg%d", argType, displayId];
 				[justArgCall appendFormat:@", arg%d", displayId];
 				[justArgType appendFormat:@", %@", argType];
+
+				[methodTypez addObject:argType];//Randy420 add
 
 				[realMethodName appendFormat:@")arg%d%@", displayId, displayName[displayId+1]];
 			}
@@ -123,10 +127,28 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 				}
 
 				int argument = [override[@"argument"] intValue];
+
 				if (argument == 0) {
+/*Randy420 start add*/
+					if ([returnType rangeOfString:@"bool"].location != NSNotFound){
+						if ([origValue intValue] == 0)
+							origValue = @"NO";
+						if ([origValue intValue] == 1)
+							origValue = @"YES";
+					}
+/*Randy420 end add*/
 					[implBody appendFormat:@"	return %@;\n", origValue];
 					break;
 				} else {
+/*Randy420 start add*/
+					if ([[methodTypez objectAtIndex:argument-1] isEqualToString:@"bool"]){
+						if ([origValue intValue] == 0){
+							origValue = @"NO";
+						} else if ([origValue intValue] == 1){
+							origValue = @"YES";
+						}
+					}
+/*Randy420 end add*/
 					[implBody appendFormat:@"	arg%i = %@;\n", argument, origValue];
 				}
 			}
@@ -218,12 +240,12 @@ int main(int argc, char *argv[]) {
 	BOOL getPlist = NO;
 #endif
 	NSString *version = @"0.0.1";
-	NSString *sandbox = @"Randy";//Randy420 - edit
+	NSString *sandbox = @"Randy";//Randy420 edit
 	NSString *dumpAll = @"";//Randy420 add
 	NSString *name;
 	NSString *patchID;
 	NSString *remote;
-	NSString *cversion =@"0.6";//Randy420 add
+	NSString *cversion =@"0.7";//Randy420 add
 	NSString *email;//Randy420 add
 	NSString *durl;//Randy420 add
 	NSString *nversion;//Randy420 add
@@ -261,8 +283,6 @@ int main(int argc, char *argv[]) {
 	FILE *hidesLog;//Randy420 add
 
 	NSDictionary *ufile;//Randy420 add
-
-	UIPasteboard *pastedboard;//Randy420 add
 
 	NSFileManager *fileManager = NSFileManager.defaultManager;//Randy420 add
 
@@ -407,10 +427,10 @@ int main(int argc, char *argv[]) {
 		redColor = "\x1B[0m";
 		greenColor = "\x1B[0m";
 		resetColor = "\x1B[0m";
-	/*Randy420 end edit*/
+/*Randy420 end edit*/
 	}
 
-	/*Randy420 start add*/
+/*Randy420 start add*/
 	if (update) {
 		printf("%sChecking for update...%s\n", greenColor, resetColor);
 		NSString *updatePath = [NSString stringWithFormat:@"%@/ftt/ftt.plist", myweb];
@@ -425,10 +445,12 @@ int main(int argc, char *argv[]) {
 		} else {
 			printf("%sYou're running an older version of ftt:\n%sCurrent Version: '%s%s%s' \nNewest Version: '%s%s%s'\nYou can download the newest version from:\n%s%s%s\n\n",redColor, resetColor, redColor, [cversion UTF8String], resetColor, greenColor, [nversion UTF8String], resetColor, cyanColor,[durl UTF8String],resetColor);
 			hidesLog = freopen("/dev/null", "w", stderr);
-			pastedboard = [UIPasteboard generalPasteboard];
-			pastedboard.string = durl;
 			fclose(hidesLog);
-			printf("%sDownload link copied to %sClipBoard%s \n\n", greenColor, cyanColor, resetColor);
+/*Randy420 start add*/
+#if TARGET_OS_IPHONE
+			[UIPasteboard.generalPasteboard setValue:durl forPasteboardType:(id)kUTTypeUTF8PlainText];
+			printf("%sRepo link copied to %sClipBoard%s \n\n", greenColor, cyanColor, resetColor);
+#endif
 			return 1;
 		}
 	}
@@ -666,7 +688,7 @@ int main(int argc, char *argv[]) {
 
 		// Control file handling
 		NSString *author = patch[@"author"];
-		/*Randy420 start add*/
+/*Randy420 start add*/
 			if (!author) {
 			author = GetNSString(@"prefName", @"default", PREFS);
 
@@ -698,10 +720,12 @@ int main(int argc, char *argv[]) {
 				[preferences setObject:email forKey: @"prefEmail"];
 				[preferences writeToFile:@"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist" atomically:YES];
 				printf("%sCredentials saved!%s\n\n", greenColor, resetColor);
+			} else {
+				printf("%sCredentials not saved!%s\n\n", redColor, resetColor);
 			}
 		}
 		title = [title lowercaseString];
-		/*Randy420 end add*/
+/*Randy420 end add*/
 		NSString *lauthor = [[[author componentsSeparatedByCharactersInSet:charsOnly] componentsJoinedByString:@""] lowercaseString];//Randy420 edit
 		NSString *description = [patch[descriptionKey] stringByReplacingOccurrencesOfString:@"\n" withString:@"\n "];
 /*Randy420 add start*/
@@ -709,7 +733,7 @@ int main(int argc, char *argv[]) {
 			if (!adjustDescription){
 				description = @"Flex to theos complete resource dump - Randy420";
 			} else {
-				printf("%splease enter a description for your patch: %s", redColor, resetColor);
+				printf("%sPlease enter a description for your patch: %s", redColor, resetColor);
 				scanf(" %399[^\n]s", userDescription);
 				description = [NSString stringWithCString:userDescription encoding:1];
 				if (description.length <= 4)
@@ -729,7 +753,7 @@ int main(int argc, char *argv[]) {
 		"Version: %@\n", lauthor, title, name, author, email, description, author, email, version];//Randy420 edit
 		[control writeToFile:[sandbox stringByAppendingPathComponent:@"control"] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 		NSString *tweakFileName = [@"Tweak" stringByAppendingPathExtension:tweakFileExt];
-		genedCode = [genedCode stringByReplacingOccurrencesOfString:@"  " withString:@" "];//Randy420 add
+		genedCode = [genedCode stringByReplacingOccurrencesOfString:@" " withString:@""];//Randy420 add
 		[genedCode writeToFile:[sandbox stringByAppendingPathComponent:tweakFileName] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 
 		if (output)
@@ -765,7 +789,7 @@ int main(int argc, char *argv[]) {
 				printf("\n%sPlease add UIKit to your project's FRAMEWORKS because this tweak includes color specifying\n", redColor);
 			}
 		}
-		printf("%s", resetColor);//Randy420 add
 	}
+	printf("%s", resetColor);//Randy420 add
 	return 0;
 }
