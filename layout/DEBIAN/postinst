@@ -1,0 +1,3 @@
+#!/bin/sh
+chown 0:0 /usr/bin/ftt
+chmod +s /usr/bin/ftt

@@ -11,3 +11,9 @@ static BOOL GetBool(NSString *pkey, BOOL defaultValue, NSString *plst) {
 
 	return [Dict objectForKey:pkey] ? [[Dict objectForKey:pkey] boolValue] : defaultValue;
 }
+
+static int GetInt(NSString *pkey, int defaultValue, NSString *plst) {
+	NSMutableDictionary *Dict = [NSMutableDictionary dictionaryWithDictionary:[NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"/var/mobile/Library/Preferences/%@.plist",plst]]];
+
+	return [Dict objectForKey:pkey] ? [[Dict objectForKey:pkey] intValue] : defaultValue;
+}

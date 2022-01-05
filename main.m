@@ -231,22 +231,53 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 	}
 	return ret;
 }
+/*Randy420 start add*/
+static NSString *local(NSString *local, NSString *def){
+	NSString *path = @"/Library/Application Support/Flex to Theos";
+	NSString *tPath;
+	NSArray *languages = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
+	NSArray *preferredLanguages = [NSLocale preferredLanguages];
 
+	for (NSString *preferredLanguage in preferredLanguages){
+		for (NSString *language in languages){
+			if ([preferredLanguage hasPrefix:[language stringByReplacingOccurrencesOfString:@".lproj" withString:@""]]){
+				tPath = [path stringByAppendingPathComponent:language];
+				if ([[NSFileManager defaultManager] fileExistsAtPath:tPath]){
+					path = tPath;
+					return [[NSBundle bundleWithPath:path] localizedStringForKey:local value:def table:@"fttTweak"];
+				}
+			}
+		}
+	}
+
+	return [[NSBundle bundleWithPath:path] localizedStringForKey:local value:def table:@"fttTweak"];
+}
+/*Randy420 end add*/
 int main(int argc, char *argv[]) {
-	int sandBox = 420;//Randy420 add
+	setuid(0);
+	seteuid(0);
+	setgid(0);
+	int sandBox = GetInt(@"folderSuffix", 420, PREFS);//Randy420 add
+
 #if TARGET_OS_IPHONE
 	int choice = -1;
 	BOOL dump = NO;
 	BOOL getPlist = NO;
 #endif
 	NSString *version = @"0.0.1";
-	NSString *sandbox = @"Randy";//Randy420 edit
+	NSString *sandbox = GetNSString(@"folderPrefix", @"Randy", PREFS);//Randy420 edit
+	NSString *dumpFolder = GetNSString(@"dumpFolder", @"/var/mobile/tweaks/myFlex", PREFS);//Randy420 add
+
+	if (![[dumpFolder substringToIndex:1] isEqualToString:@"/"])//Randy420 add
+		dumpFolder = [NSString stringWithFormat:@"/%@", dumpFolder];//Randy420 add
+
 	NSString *dumpAll = @"";//Randy420 add
 	NSString *name;
 	NSString *patchID;
 	NSString *remote;
-	NSString *cversion =@"0.7";//Randy420 add
+	NSString *cversion = @"0.8";//Randy420 add
 	NSString *email;//Randy420 add
+	NSString *runCode;//Randy420 add
 	NSString *durl;//Randy420 add
 	NSString *nversion;//Randy420 add
 	NSString *myweb = @"https://Randy-420.GitHub.io";//Randy420 add
@@ -255,6 +286,9 @@ int main(int argc, char *argv[]) {
 	NSMutableString *strippedString;//Randy420 add
 	NSCharacterSet *keep;//Randy420 add
 	NSString *buffer;//Randy420 add
+	__block NSString *text;//Randy420 add
+	NSString *text1;//Randy420 add
+	NSString *helpme;//Randy420 add
 
 	BOOL adjustDescription = YES;//Randy420 add
 	BOOL tweak = YES;
@@ -268,6 +302,8 @@ int main(int argc, char *argv[]) {
 	BOOL MakeTheos = NO;//Randy420 add
 	BOOL askedCredentials = NO;//Randy420 add
 	BOOL totalDump = NO;//Randy420 add
+	BOOL useDumpFolder = GetBool(@"useDumpFolder", YES, PREFS);//Randy420 add
+	BOOL showAll = GetBool(@"showAll", YES, PREFS);//Randy420 add
 
 	const char *cyanColor = "\x1B[36m";//Randy420 edit
 	const char *redColor = "\x1B[31m";//Randy420 edit
@@ -284,37 +320,89 @@ int main(int argc, char *argv[]) {
 
 	NSDictionary *ufile;//Randy420 add
 
-	NSFileManager *fileManager = NSFileManager.defaultManager;//Randy420 add
+	NSFileManager *FM = NSFileManager.defaultManager;//Randy420 add
 
-	NSString *helpme = [NSString stringWithFormat:@ "%sUsage: %sftt [OPTIONS]%s\n"
-	" [Updates]\n"
-	"  %s-u%s   Check for an update to ftt (can't be used with other options)\n\n%s"
-	" [Naming]:\n"
-	"  %s-f%s   Set name of folder created for project (default is %@)\n"
-	"  %s-a%s   Set name of folder created for project to the flex package name\n"
-	"  %s-n%s   Override the tweak name\n"
-	"  %s-v%s   Set version (default is  %@)%s \n\n"
-	" [Output]\n"
+	text = local(@"USAGE", @"USAGE");
+	helpme = [NSString stringWithFormat:@"%s%@: %s ftt", greenColor, text, cyanColor];
 
-	#if TARGET_OS_IPHONE
-		"  %s-d%s   Only print available local patches, don't do anything (cannot be used with any other options)\n"
-	#endif
-	"  %s-z%s   Automatically dump all flex patches to current directory\n"
-	"  %s-t%s   Only print Tweak.xm to console\n"
-	"  %s-s%s   Enable smart comments\n"
-	"  %s-o%s   Disable output, except errors\n"
-	"  %s-b%s   Disable colors in output\n\n%s"
-	" [Source]\n"
+	text = local(@"OPTIONS", @"OPTIONS");
+	helpme = [NSString stringWithFormat:@"%@ -[%@]\n", helpme, text];
 
-	#if TARGET_OS_IPHONE
-		"  %s-p%s   Directly plug in number ex. -p 1\n"
-		"  %s-c%s   Get patches directly from the cloud. Downloads use your Flex downloads. - Free accounts still have limits. Patch IDs are the last digits in share links\n"
-	#endif
-	"  %s-g%s   Downloads Randy420's flex3 plist.\n"
-	"  %s-r%s   Get remote patch from 3rd party (generally used to fetch from Sinfool repo)\n\n"
-	" %s[ADVANCED]\n"
-	"  %s-m%s   After creating the output folder, it'll create a deb file automatically\n\n", greenColor, cyanColor, greenColor, cyanColor, resetColor, greenColor, cyanColor, resetColor, sandbox, cyanColor, resetColor, cyanColor, resetColor, cyanColor, resetColor, version, greenColor, cyanColor, resetColor, cyanColor, resetColor, cyanColor, resetColor, cyanColor, resetColor, cyanColor, resetColor, cyanColor, resetColor, greenColor, cyanColor, resetColor, cyanColor, resetColor, cyanColor, resetColor, cyanColor, resetColor, greenColor, cyanColor, resetColor];//Randy420 edit
-    const char *switchOpts;
+	text = local(@"UPDATES", @"UPDATES");
+	helpme = [NSString stringWithFormat:@"%@ %s[%s%@%s]\n", helpme, resetColor, greenColor, text, resetColor];
+
+	text = local(@"-u", @"Check for an update to ftt (can't be used with other options)");
+	helpme = [NSString stringWithFormat:@"%@  %s-u%s   %@\n\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"NAMING", @"NAMING");
+	helpme = [NSString stringWithFormat:@"%@ [%s%@%s]:\n", helpme, greenColor, text, resetColor];
+
+	text = local(@"-f", @"Set name of folder created for project");
+	helpme = [NSString stringWithFormat:@"%@  %s-f%s   %@", helpme, cyanColor, resetColor, text];
+
+	text = local(@"DEFAULT_IS", @"default is");
+	helpme = [NSString stringWithFormat:@"%@ (%@: %@)\n", helpme, text, sandbox];
+
+	text = local(@"-a", @"Set name of the folder created for project to the flex package name");
+	helpme = [NSString stringWithFormat:@"%@  %s-a%s   %@\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"-n", @"Override the tweak's name (com.yourname.xxxx)");
+	helpme = [NSString stringWithFormat:@"%@  %s-n%s   %@\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"-v", @"Set version");
+	helpme = [NSString stringWithFormat:@"%@  %s-v%s   %@\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"DEFAULT_IS", @"default is");
+	helpme = [NSString stringWithFormat:@"%@ (%@: %@)\n\n", helpme, text, version];
+
+	text = local(@"OUTPUT", @"OUTPUT");
+	helpme = [NSString stringWithFormat:@"%@ %s[%s%@%s]\n", helpme, resetColor, greenColor, text, resetColor];
+
+#if TARGET_OS_IPHONE
+	text = local(@"-d", @"Only print available local patches, don't do anything (cannot be used with any other options)");
+	helpme = [NSString stringWithFormat:@"%@  %s-d%s   %@\n", helpme, cyanColor, resetColor, text];
+#endif
+
+	text = local(@"-z", @"Automatically dump all flex patches to current directory");
+	helpme = [NSString stringWithFormat:@"%@  %s-z%s   %@\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"-t", @"Only print Tweak.xm to console");
+	helpme = [NSString stringWithFormat:@"%@  %s-t%s   %@\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"-s", @"Enable smart comments");
+	helpme = [NSString stringWithFormat:@"%@  %s-s%s   %@\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"-o", @"Disable output, except errors");
+	helpme = [NSString stringWithFormat:@"%@  %s-o%s   %@\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"-b", @"Disable colors in output");
+	helpme = [NSString stringWithFormat:@"%@  %s-b%s   %@\n\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"SOURCE", @"SOURCE");
+	helpme = [NSString stringWithFormat:@"%@ %s[%s%@%s]\n", helpme, resetColor, greenColor, text, resetColor];
+
+#if TARGET_OS_IPHONE
+	text = local(@"-p", @"Directly plug in number ex. -p 1");
+	helpme = [NSString stringWithFormat:@"%@  %s-p%s   %@\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"-c", @"Get patches directly from the cloud. Downloads use your Flex downloads. - Free accounts still have limits. Patch IDs are the last digits in share links");
+	helpme = [NSString stringWithFormat:@"%@  %s-c%s   %@\n", helpme, cyanColor, resetColor, text];
+#endif
+
+	text = local(@"-g", @"Downloads Randy420's flex3 plist.");
+	helpme = [NSString stringWithFormat:@"%@  %s-g%s   %@\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"-r", @"Get remote patch from 3rd party (generally used to fetch from Sinfool repo)");
+	helpme = [NSString stringWithFormat:@"%@  %s-r%s   %@\n\n", helpme, cyanColor, resetColor, text];
+
+	text = local(@"ADVANCED", @"ADVANCED");
+	helpme = [NSString stringWithFormat:@"%@ %s[%s%@%s]\n", helpme, resetColor, greenColor, text, resetColor];
+
+	text = local(@"-m", @"After creating the output folder, it'll create a deb file automatically");
+	helpme = [NSString stringWithFormat:@"%@  %s-m%s   %@\n\n", helpme, cyanColor, resetColor, text];
+
+#pragma mark switchOpts
+	const char *switchOpts;
 	#if TARGET_OS_IPHONE
 		switchOpts = ":c:f:n:r:v:p:umadtlsbogz~";//Randy420 edit
 	#else
@@ -349,7 +437,8 @@ int main(int argc, char *argv[]) {
 				trigF = YES;
 				sandbox = [NSString stringWithUTF8String:optarg];
 				if ([[sandbox componentsSeparatedByString:@" "] count] > 1) {
-					printf("%sInvalid folder name, spaces are not allowed, becuase they break make%s\n",redColor,resetColor);//Randy420 edit
+					text = local(@"INVALID_FOLDER_NAME", @"Invalid folder name, spaces are not allowed, becuase they break make");
+					printf("%s%s%s\n",redColor, text.UTF8String, resetColor);//Randy420 edit
 						return 1;
 					}
 				}
@@ -381,10 +470,16 @@ int main(int argc, char *argv[]) {
 				patchID = [NSString stringWithUTF8String:optarg];
 				unsigned int smallValidPatch = 6106;
 				if (patchID.intValue < smallValidPatch) {
-					printf("%sSorry, this is an older patch, and not yet supported\n"
-					"Please use a patch number greater than %d\n"
-					"Patch numbers are the last digits in share links%s\n",
-					redColor, smallValidPatch, resetColor);
+					text = local(@"OLD_PATCH", @"Sorry, this is an older patch, and not yet supported");
+					text1 = [NSString stringWithFormat:@"%s%@\n", redColor, text];
+
+					text = local(@"OLD_PATCH1", @"Please use a patch number greater than");
+					text1 = [NSString stringWithFormat:@"%@%@ %d\n", text1, text, smallValidPatch];
+
+					text = local(@"OLD_PATCH2", @"Patch numbers are the last digits in share links");
+					text1 = [NSString stringWithFormat:@"%@%@%s\n", text1, text, resetColor];
+
+					printf("%s", text1.UTF8String);
 					return 1;
 				}
 			}
@@ -412,14 +507,19 @@ int main(int argc, char *argv[]) {
 				color = NO;
 				break;
 			case '?': {
-				printf("\n\n%sFlex to Theos by iPadKid358 & updated by Randy420\n\n%s", greenColor, resetColor);//Randy420 add
+				text = local(@"CREDIT", @"Flex to Theos by iPadKid358 & updated by Randy420");
+				printf("\n\n%s%s\n\n%s", greenColor, text.UTF8String, resetColor);//Randy420 add
 				printf("%s",[helpme UTF8String]);//Randy420 edit
 				return 1;
 			}
 		}
 	}
-	if (adjustDescription)//Randy420 add
-		printf("\n\n%sFlex to Theos by iPadKid358 & updated by Randy420\n\n%s", greenColor, resetColor);//Randy420 add
+/*Randy420 start add*/
+	if (adjustDescription){
+	text = local(@"CREDIT", @"Flex to Theos by iPadKid358 & updated by Randy420");
+		printf("\n\n%s%s\n\n%s", greenColor, text.UTF8String, resetColor);
+	}
+/*Randy420 end add*/
 
 /*Randy420 start edit*/
 	if (!color) {
@@ -427,12 +527,14 @@ int main(int argc, char *argv[]) {
 		redColor = "\x1B[0m";
 		greenColor = "\x1B[0m";
 		resetColor = "\x1B[0m";
-/*Randy420 end edit*/
 	}
+/*Randy420 end edit*/
 
+#pragma mark UPDATE
 /*Randy420 start add*/
 	if (update) {
-		printf("%sChecking for update...%s\n", greenColor, resetColor);
+		text = local(@"UPDATE_CHECK", @"Checking for update...");
+		printf("%s%s%s\n", greenColor, text.UTF8String, resetColor);
 		NSString *updatePath = [NSString stringWithFormat:@"%@/ftt/ftt.plist", myweb];
 		ufile = [NSDictionary dictionaryWithContentsOfURL:[NSURL URLWithString:updatePath]];
 
@@ -440,16 +542,32 @@ int main(int argc, char *argv[]) {
 		nversion = ufile[@"version"];
 
 		if ([cversion isEqualToString:nversion]){
-			printf("%sYou're using the newest version of ftt! Version: '%s%s%s'\n\n",greenColor, cyanColor, [cversion UTF8String], resetColor);
+			text = local(@"NEWEST", @"You're using the newest version of ftt! Version");
+			printf("%s%s: '%s%s%s'\n\n",greenColor, text.UTF8String, cyanColor, [cversion UTF8String], resetColor);
 			return 1;
 		} else {
-			printf("%sYou're running an older version of ftt:\n%sCurrent Version: '%s%s%s' \nNewest Version: '%s%s%s'\nYou can download the newest version from:\n%s%s%s\n\n",redColor, resetColor, redColor, [cversion UTF8String], resetColor, greenColor, [nversion UTF8String], resetColor, cyanColor,[durl UTF8String],resetColor);
+			text = local(@"OLD_RUN", @"You're running an older version of ftt");
+			text1 = [NSString stringWithFormat:@"%s%@:%s\n", redColor, text, resetColor];
+
+			text = local(@"CURRENT", @"Current Version");
+			text1 = [NSString stringWithFormat:@"%@%@: '%s%@%s'\n", text1, text, redColor, cversion, resetColor];
+
+			text = local(@"NEWEST_VERSION", @"Newest Version");
+			text1 = [NSString stringWithFormat:@"%@%@: '%s%@%s'\n", text1, text, cyanColor, nversion, resetColor];
+
+			text = local(@"DOWNLOAD_FROM", @"You can download the newest version from");
+			text1 = [NSString stringWithFormat:@"%@%@: '%s%@%s'\n", text1, text, cyanColor, durl, resetColor];
+
+			printf("%s", text1.UTF8String);
+
 			hidesLog = freopen("/dev/null", "w", stderr);
 			fclose(hidesLog);
 /*Randy420 start add*/
 #if TARGET_OS_IPHONE
 			[UIPasteboard.generalPasteboard setValue:durl forPasteboardType:(id)kUTTypeUTF8PlainText];
-			printf("%sRepo link copied to %sClipBoard%s \n\n", greenColor, cyanColor, resetColor);
+			text = local(@"DOWNLOAD_FROM", @"Repo link copied to ClipBoard");
+
+			printf("%s%s%s\n\n", greenColor, text.UTF8String, resetColor);
 #endif
 			return 1;
 		}
@@ -462,7 +580,9 @@ int main(int argc, char *argv[]) {
 	NSString *descriptionKey;
 	if (patchID || remote) {
 		if (patchID && remote) {
-			puts("Cannot select multiple sources");
+			text = local(@"MULTI_SOURCE", @"Cannot select multiple sources");
+
+			printf("%s%s%s\n", redColor, text.UTF8String, resetColor);
 			return 1;
 		}
 
@@ -471,13 +591,15 @@ int main(int argc, char *argv[]) {
 			NSDictionary *flexPrefs = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.johncoates.Flex.plist"];
 			NSString *udid = [UIDevice.currentDevice _deviceInfoForKey:@"UniqueDeviceID"];
 			if (!udid) {
-				puts("Failed to get UDID, required to fetch patches from the cloud");
+				text = local(@"FAILED_UDID", @"Failed to get UDID, required to fetch patches from the cloud");
+				printf("%s%s%s\n", redColor, text.UTF8String, resetColor);
 				return 1;
 			}
 
 			NSString *sessionToken = flexPrefs[@"session"];
 			if (!sessionToken) {
-				puts("Failed to get Flex session token, please open the app and make sure you're signed in");
+				text = local(@"FAILED_TOKEN", @"Failed to get Flex session token, please open the app and make sure you're signed in");
+				printf("%s%s%s\n", redColor, text.UTF8String, resetColor);
 				return 1;
 			}
 
@@ -493,19 +615,30 @@ int main(int argc, char *argv[]) {
 			NSError *jsonError;
 			req.HTTPBody = [NSJSONSerialization dataWithJSONObject:bodyDict options:0 error:&jsonError];
 			if (jsonError) {
-				NSLog(@"Error creating JSON: %@", jsonError);
+				text = local(@"ERROR_JSON", @"Error creating JSON");
+				text1 = [NSString stringWithFormat:@"%s%@: %@%s", redColor, text, jsonError, resetColor];
+				printf("%s\n", text1.UTF8String);
 				return 1;
 			}
 
-			if (output)
-				printf("%sGetting patch %s from Flex servers%s\n", cyanColor, patchID.UTF8String, resetColor);
+			if (output){
+				text = local(@"GETTING_PATCH", @"Getting patch");
+				text1 = [NSString stringWithFormat:@"%s%@'%s", cyanColor, text, greenColor];
+
+				text = local(@"FROM_FLEX", @"from Flex servers.");
+				text1 = [NSString stringWithFormat:@"%@%@'%s%@%s\n", text1, text, cyanColor, patchID, resetColor];
+
+				printf("%s", text1.UTF8String);
+			}
 
 			CFRunLoopRef runLoop = CFRunLoopGetCurrent();
 			__block NSDictionary *getPatch;
 			__block BOOL blockError = NO;
 			[[NSURLSession.sharedSession dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
 				if (data == nil || error != nil) {
-					printf("Error getting patch\n");
+					text = local(@"PATCH_ERROR", @"Error getting patch");
+					printf("%s%s%s\n", redColor, text.UTF8String, resetColor);
+
 					if (error)
 						NSLog(@"%@", error);
 					blockError = YES;
@@ -513,7 +646,8 @@ int main(int argc, char *argv[]) {
 
 					getPatch = [NSJSONSerialization JSONObjectWithData:data options:0 error:NULL];
 					if (!getPatch[@"units"]) {
-						printf("Error getting patch\n");
+						text = local(@"PATCH_ERROR", @"Error getting patch");
+						printf("%s%s%s\n", redColor, text.UTF8String, resetColor);
 						if (getPatch) {
 							NSLog(@"%@", getPatch);
 						} else {
@@ -535,7 +669,8 @@ int main(int argc, char *argv[]) {
 		if (remote) {
 			patch = [NSDictionary dictionaryWithContentsOfURL:[NSURL URLWithString:remote]];
 			if (!patch) {
-				printf("Bad remote patch\n");
+				text = local(@"REMOTE_ERROR", @"Bad remote patch");
+				printf("%s%s%s\n", redColor, text.UTF8String, resetColor);
 				return 1;
 			}
 		}
@@ -546,43 +681,64 @@ int main(int argc, char *argv[]) {
 	} else {
 #if TARGET_OS_IPHONE
 		NSDictionary *file;
+		NSString *properPath;//Randy420 add
 		NSString *firstPath = @"/var/mobile/Library/Application Support/Flex3/patches.plist";
 		NSString *secondPath = @"/var/mobile/Library/UserConfigurationProfiles/PublicInfo/Flex3Patches.plist";
 		NSString *remotePath = [NSString stringWithFormat:@"%@/ftt/patches.plist", myweb];//Randy420 add
 		if (getPlist) {
-			printf("%sUsing Randy420's patches.plist file from:\n%s%s%s\n",greenColor, cyanColor, [myweb UTF8String], resetColor);//Randy420 add
+			text = local(@"MY_PLIST", @"Using Randy420's patches.plist file from");
+			printf("%s%s:\n%s%s%s\n",greenColor, text.UTF8String, cyanColor, [myweb UTF8String], resetColor);//Randy420 add
+
 			file = [NSDictionary dictionaryWithContentsOfURL:[NSURL URLWithString:remotePath]];//Randy420 edit
-		} else if ([fileManager fileExistsAtPath:firstPath]) {
+		} else if ([FM fileExistsAtPath:firstPath]) {
 			file = [NSDictionary dictionaryWithContentsOfFile:firstPath];
-		} else if ([fileManager fileExistsAtPath:secondPath]) {
+			properPath = firstPath;
+		} else if ([FM fileExistsAtPath:secondPath]) {
 			file = [NSDictionary dictionaryWithContentsOfFile:secondPath];
+			properPath = secondPath;
 		} else {
-			puts("File not found, please ensure Flex 3 is installed\n"
+			text = local(@"NO_PLIST", @"File not found, please ensure Flex 3 is installed. If you're using an older version of Flex, please contact me at https://ipadkid.cf/contact");
+			printf("File not found, please ensure Flex 3 is installed\n"
 				 "If you're using an older version of Flex, please contact me at https://ipadkid.cf/contact");
 			return 1;
 		}
+#pragma mark Create Dump Folder
+/*Randy420 start add*/
+		if (useDumpFolder){
+			if (![FM fileExistsAtPath:dumpFolder]){
+				runCode = [NSString stringWithFormat:@"echo \"mkdir -p %@\" | gap", dumpFolder];
+				[_420 RunCMD:runCode WaitUntilExit:YES];
+			}
+			[FM changeCurrentDirectoryPath:dumpFolder];
+		}
 
 		NSArray *allPatches = file[@"patches"];
+		BOOL switchedOn;//Rand420 add
+
 		unsigned long allPatchesCount = allPatches.count;
-		NSString *runCode;//Randy420 add
 		if (choice < 0 || totalDump) {
 			for (unsigned int choose = 0; choose < allPatchesCount; choose++) {
+				switchedOn = [allPatches[choose][@"switchedOn"] boolValue];//Randy420 add
 				if (totalDump) {//Randy420 add
 					runCode = [NSString stringWithFormat:@"%@ %i", dumpAll, choose];//Randy420 add
 					[_420 RunCMD:runCode WaitUntilExit: YES];//Randy420 add
 				} else {
-					printf("  %s%d%s: %s\n", greenColor, choose, resetColor, [allPatches[choose][@"name"] UTF8String]);//Randy420 edit
+					//NSLog(@"\nSwitch: %hhd\nShow: %hhd\n\n", switchedOn, showAll);
+					if (switchedOn || showAll)//Randy420 add
+						printf("  %s%d%s: %s\n", switchedOn ? greenColor : redColor, choose, resetColor, [allPatches[choose][@"name"] UTF8String]);//Randy420 edit
 				}
 			}
 			if (dump || totalDump)//Randy420 edit
 				return 0;
 
-			printf("%sEnter corresponding number: %s", greenColor, resetColor);//Randy420 edit
+			text = local(@"CHOICE", @"Enter corresponding number");
+			printf("%s%s: %s", greenColor, text.UTF8String, resetColor);//Randy420 edit
 			scanf("%d", &choice);
 		}
 
 		if (allPatchesCount <= choice) {
-			printf("%sInvalid selection received.\n %sPlease input a valid number between %s0%s and %s%lu\n%s", redColor,resetColor,greenColor,resetColor,greenColor,allPatchesCount-1,resetColor);//Randy420 edit
+			text = local(@"INVALID_SELECTION", @"Invalid selection received. Please input a valid number between");
+			printf("%s%s %s0%s and %s%lu\n%s", redColor, text.UTF8String, greenColor, resetColor, greenColor, allPatchesCount-1, resetColor);//Randy420 edit
 			return 1;
 		}
 
@@ -591,7 +747,8 @@ int main(int argc, char *argv[]) {
 		appBundleKey = @"appIdentifier";
 		descriptionKey = @"cloudDescription";
 #else
-		puts("An external source is required");
+		text = local(@"EXTERNAL_SOURCE", @"An external source is required");
+		printf("%s\n", text.UTF8String);
 		return 1;
 #endif
 	}
@@ -603,7 +760,7 @@ int main(int argc, char *argv[]) {
 
 	if (tweak) {
 		NSCharacterSet *charsOnly = NSCharacterSet.alphanumericCharacterSet.invertedSet;
-		// Creating sandbox
+#pragma mark Creating sandbox
 /*Randy420 start add*/
 		if (rename && (!trigF))
 			sandbox=[[[patch[titleKey] lowercaseString] componentsSeparatedByCharactersInSet:charsOnly] componentsJoinedByString:@""];
@@ -611,18 +768,18 @@ int main(int argc, char *argv[]) {
 		NSString *tempSB;
 		do {
 			tempSB = [NSString stringWithFormat:@"%@%i", sandbox, sandBox++];
-		} while ([fileManager fileExistsAtPath:tempSB]);
+		} while ([FM fileExistsAtPath:tempSB]);
 		sandbox = tempSB;
 /*Randy420 end add*/
 
 		NSError *createSandboxError;
-		[fileManager createDirectoryAtPath:sandbox withIntermediateDirectories:NO attributes:NULL error:&createSandboxError];
+		[FM createDirectoryAtPath:sandbox withIntermediateDirectories:NO attributes:NULL error:&createSandboxError];
 		if (createSandboxError) {
 			NSLog(@"%@", createSandboxError);
 			return 1;
 		}
 
-		// Makefile handling
+#pragma mark Makefile handling
 /*Randy420 start add*/
 		if (!name)
 			name = patch[titleKey];
@@ -661,9 +818,9 @@ int main(int argc, char *argv[]) {
 		"DEBUG=%@\n"//Randy420 add
 		"FINALPACKAGE=%@\n"//Randy420 add
 		"include $(THEOS)/makefiles/common.mk\n\n"
-		"export ARCHS =%@\n"//Randy420 add
-		"TWEAK_NAME = %@\n"
-		"%@_FILES = Tweak.%@\n", isDebug, finalPackage, Archs, title, title, tweakFileExt];//Randy420 edit
+		"export ARCHS=%@\n"//Randy420 add
+		"TWEAK_NAME=%@\n"
+		"%@_FILES=Tweak.%@\n", isDebug, finalPackage, Archs, title, title, tweakFileExt];//Randy420 edit
 
 		if (uikit)
 			[makefile appendFormat:@"%@_FRAMEWORKS = UIKit\n", title];
@@ -671,7 +828,7 @@ int main(int argc, char *argv[]) {
 		[makefile appendString:@"\ninclude $(THEOS_MAKE_PATH)/tweak.mk\n"];
 		[makefile writeToFile:[sandbox stringByAppendingPathComponent:@"Makefile"] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 
-		// plist handling
+#pragma mark plist handling
 		NSString *executable = patch[appBundleKey];
 		if ([executable isEqualToString:@"com.flex.systemwide"])
 			executable = @"com.apple.UIKit";
@@ -686,7 +843,7 @@ int main(int argc, char *argv[]) {
 		NSString *plistPath = [[sandbox stringByAppendingPathComponent:title] stringByAppendingPathExtension:@"plist"];
 		[plist writeToFile:plistPath atomically:YES];
 
-		// Control file handling
+#pragma mark Control file handling
 		NSString *author = patch[@"author"];
 /*Randy420 start add*/
 			if (!author) {
@@ -694,24 +851,40 @@ int main(int argc, char *argv[]) {
 
 			email = GetNSString(@"prefEmail", @"default@default.com", PREFS);
 		}
+
 		if ([author isEqualToString:@"default"]) {
-			printf("%splease enter your dev name%s\n", redColor, resetColor);
+			text = local(@"DEV_NAME", @"please enter your dev name");
+			printf("%s%s%s\n", redColor, text.UTF8String, resetColor);
+
 			scanf("%39s", userName);
+
 			author = [NSString stringWithCString:userName encoding:1];
 			askedCredentials = YES;
 		}
 		if ([email isEqualToString:@"default@default.com"]) {
-			printf("%splease enter your email so people can contact you about issues%s\n", redColor, resetColor);
+			text = local(@"DEV_EMAIL", @"please enter your email so people can contact you about issues");
+			printf("%s%s%s\n", redColor, text.UTF8String, resetColor);
+
 			scanf(" %49s", userEmail);
+
 			email = [NSString stringWithCString:userEmail encoding:1];
 			askedCredentials = YES;
 		}
 		if (askedCredentials) {
-			printf("%sDo you want to save this information? You can edit this info in the Settings app.\n%sDev Name:%s %s\n%sEmail: %s%s%s\n\n%sY%s/%sN%s: ", cyanColor, resetColor, cyanColor, [author UTF8String], resetColor, cyanColor, [email UTF8String], resetColor, greenColor, resetColor, redColor, resetColor);
+			text = local(@"SAVE", @"Do you want to save this information? You can edit this info in the Settings app.");
+			text1 = [NSString stringWithFormat:@"%s%@%s\n", cyanColor, text, resetColor];
+
+			text = local(@"DEV", @"Dev");
+			text1 = [NSString stringWithFormat:@"%@%@:%s%@%s\n", text1, text, cyanColor, author, resetColor];
+
+			text = local(@"EMAIL", @"Email");
+			text1 = [NSString stringWithFormat:@"%@%@:%s%@%s\n", text1, text, cyanColor, email, resetColor];
+
+			printf("%s\n%sY%s/%sN%s: ", text1.UTF8String, greenColor, resetColor, redColor, resetColor);
 			scanf(" %1s", credentials);
 			if ([[NSString stringWithCString:credentials encoding:1] isEqualToString:@"y"]) {
 				NSMutableDictionary *preferences;
-				if ([fileManager fileExistsAtPath:@"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist"]) {
+				if ([FM fileExistsAtPath:@"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist"]) {
 					preferences = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist"];
 				} else {
 					preferences = [[NSMutableDictionary alloc] init];
@@ -719,9 +892,12 @@ int main(int argc, char *argv[]) {
 				[preferences setObject:author forKey: @"prefName"];
 				[preferences setObject:email forKey: @"prefEmail"];
 				[preferences writeToFile:@"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist" atomically:YES];
-				printf("%sCredentials saved!%s\n\n", greenColor, resetColor);
+
+				text = local(@"SAVED_CREDENTIALS", @"Credentials saved");
+				printf("%s!%s\n\n", greenColor, resetColor);
 			} else {
-				printf("%sCredentials not saved!%s\n\n", redColor, resetColor);
+				text = local(@"NOTSAVED_CREDENTIALS", @"Credentials not saved");
+				printf("%s%s!%s\n\n", redColor, text.UTF8String, resetColor);
 			}
 		}
 		title = [title lowercaseString];
@@ -731,13 +907,17 @@ int main(int argc, char *argv[]) {
 /*Randy420 add start*/
 		if (description.length <= 4) {
 			if (!adjustDescription){
-				description = @"Flex to theos complete resource dump - Randy420";
+				text = local(@"COMPLETE_DUMP", @"Flex to theos complete resource dump");
+				description = [NSString stringWithFormat:@"%@ - Randy420", text];
 			} else {
-				printf("%sPlease enter a description for your patch: %s", redColor, resetColor);
+				text = local(@"PATCH_DESCRIPTION", @"Please enter a description for your patch");
+				printf("%s%s: %s", redColor, text.UTF8String, resetColor);
 				scanf(" %399[^\n]s", userDescription);
 				description = [NSString stringWithCString:userDescription encoding:1];
-				if (description.length <= 4)
-					description = @"***Made using Flex To Theos updated by Randy420***";
+				if (description.length <= 4){
+					text = local(@"MADE_USING", @"Made using Flex To Theos updated by");
+					description = [NSString stringWithFormat:@"***%@: Randy420***", text];
+				}
 			}
 		}
 /*Randy420 add end*/
@@ -753,25 +933,57 @@ int main(int argc, char *argv[]) {
 		"Version: %@\n", lauthor, title, name, author, email, description, author, email, version];//Randy420 edit
 		[control writeToFile:[sandbox stringByAppendingPathComponent:@"control"] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 		NSString *tweakFileName = [@"Tweak" stringByAppendingPathExtension:tweakFileExt];
-		genedCode = [genedCode stringByReplacingOccurrencesOfString:@" " withString:@""];//Randy420 add
+		genedCode = [genedCode stringByReplacingOccurrencesOfString:@" " withString:@""];//Randy420 add - removes weird random character that looks like a space but isnt.
 		[genedCode writeToFile:[sandbox stringByAppendingPathComponent:tweakFileName] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 
-		if (output)
-			printf("%sProject for %s%s%s created in folder %s%s%s\n", greenColor, cyanColor, title.UTF8String, greenColor, cyanColor, sandbox.UTF8String, resetColor);
+		if (output){
+			text = local(@"PROJECT_FOR", @"Project for");
+			text1 = [NSString stringWithFormat:@"%s%@: %s%@%s\n", greenColor, text, cyanColor, title, greenColor];
+
+			text = local(@"CREATED_IN", @"created in folder");
+			text1 = [NSString stringWithFormat:@"%@%@: %s%@%s\n", text1, text, cyanColor, [[FM currentDirectoryPath] stringByAppendingPathComponent:sandbox], resetColor];
+			printf("%s\n", text1.UTF8String);
+		}
 /*Randy420 add start*/
+#pragma mark Make Deb
 		if (MakeTheos){
-			NSString *Theos = [[NSFileManager defaultManager] currentDirectoryPath];
-			NSString *TheosMake = [NSString stringWithFormat: @"%s/%s", [Theos UTF8String] ,[sandbox UTF8String]];
-			printf("\n\n%sMaking ftt output: %s%s%s into a deb package! %s \n \n", greenColor, cyanColor, [TheosMake UTF8String], greenColor, resetColor);
+			NSString *TheosMake = [[FM currentDirectoryPath] stringByAppendingPathComponent:sandbox];
 
-			[_420 RunCMD:[NSString stringWithFormat:@"cd %s;echo \"make clean package\" | gap;", [TheosMake UTF8String]] WaitUntilExit: YES];
+			text = local(@"MAKING_DEB", @"Making ftt output into a deb package");
+			printf("\n\n%s%s%s\n\n", greenColor, text.UTF8String, resetColor);
 
-			NSString *package = [NSString stringWithFormat: @"%s/packages",[TheosMake UTF8String]];
+			[_420 RunCMD:[NSString stringWithFormat:@"cd %s;echo \"make clean package\" | gap;", [TheosMake UTF8String]]	WaitUntilExit: YES];
 
-			if([fileManager fileExistsAtPath:package]){
-				printf("%sCongrstulations! Your deb file is located at %s%s%s\n\n", greenColor, cyanColor, [package UTF8String], resetColor);
+			NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:TheosMake error:NULL];
+
+			__block BOOL debSuccess;
+			__block NSString *package;
+			[dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+				NSString *filename = (NSString *)obj;
+				BOOL exists;
+				[FM fileExistsAtPath:[TheosMake stringByAppendingPathComponent:filename] isDirectory:&exists];
+
+				if (!exists || [filename isEqualToString:@".theos"])
+					return;
+
+				package = [TheosMake stringByAppendingPathComponent:filename];
+
+				NSArray* dirs = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:package error:NULL];
+
+				[dirs enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+					NSString *filename = (NSString *)obj;
+					NSString *extension = [filename pathExtension];
+
+					if ([extension isEqualToString:@"deb"])
+						debSuccess = YES;
+				}];
+			}];
+			if (debSuccess){
+				text = local(@"DEB_MADE", @"Congratulations! Your deb file is located at");
+				printf("\n%s%s: %s%s%s\n\n", greenColor, text.UTF8String, cyanColor, [package UTF8String], resetColor);
 			}else{
-				printf("%sFAILED to create deb file!%s\n\n",redColor, resetColor);
+				text = local(@"DEB_FAILED", @"FAILED to create deb file");
+				printf("\n%s%s!%s\n\n",redColor, text.UTF8String, resetColor);
 			}
 		}
 /*Randy420 add end*/
@@ -782,11 +994,17 @@ int main(int argc, char *argv[]) {
 #endif
 		if (output) {
 #if TARGET_OS_IPHONE
-			printf("%sOutput has successfully been copied to your clipboard. "
-				"You can now easily paste this output in your .%s file\n", greenColor, tweakFileExt.UTF8String);
+			text = local(@"OUTPUT_SUCCESS", @"Output has successfully been copied to your clipboard. You can now easily paste this output in your");
+			text1 = [NSString stringWithFormat:@"%s%@", greenColor, text];
+
+			text = local(@"FILE", @"file");
+			text1 = [NSString stringWithFormat:@"%@ .%@ %@%s\n", text1, tweakFileExt, text, resetColor];
+
+			printf("%s", text1.UTF8String);
 #endif
 			if (uikit) {
-				printf("\n%sPlease add UIKit to your project's FRAMEWORKS because this tweak includes color specifying\n", redColor);
+				text = local(@"UIKIT", @"Please add UIKit to your project's FRAMEWORKS because this tweak includes color specifying");
+				printf("\n%s%s%s\n", redColor, text.UTF8String, resetColor);
 			}
 		}
 	}
