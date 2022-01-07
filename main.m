@@ -250,7 +250,7 @@ static NSString *local(NSString *local, NSString *def){
 		}
 	}
 
-	return [[NSBundle bundleWithPath:path] localizedStringForKey:local value:def table:@"fttTweak"];
+	return def;//[[NSBundle bundleWithPath:path] localizedStringForKey:local value:def table:@"fttTweak"];
 }
 /*Randy420 end add*/
 int main(int argc, char *argv[]) {
