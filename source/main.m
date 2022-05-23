@@ -34,6 +34,9 @@
  @return a UTF8 encoded string of the code
  */
 NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOOL logos) {
+	BOOL finishVoid = GetBool(@"finishVoid", YES, PREFS);//Randy420 add
+	BOOL askVoid = GetBool(@"askVoid", NO, PREFS);//Randy420 add
+
 	NSString *ret;
 	NSMutableArray *methodTypez = [[NSMutableArray alloc] init];//Randy420 add
 	@autoreleasepool {
@@ -106,8 +109,11 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 
 			NSArray *allOverrides = unit[@"overrides"];
 			for (NSDictionary *override in allOverrides) {
-				if (override.count == 0)
-					continue;
+				//if (override.count == 0)
+					//continue;
+
+				int retType = [override[@"type"][@"type"] intValue];//Randy420 add
+				int retSubType = [override[@"type"][@"subtype"] intValue];//Randy420 add
 
 				NSString *origValue = override[@"value"][@"value"];
 
@@ -136,11 +142,20 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 						if ([origValue intValue] == 1)
 							origValue = @"YES";
 					}
-/*Randy420 end add*/
+
+					if (retType == 1 && retSubType == 2) {
+						origValue = [NSString stringWithFormat:@"[NSNumber numberWithInteger:%@]", origValue];
+					}
+/*Randy420 finish add*/
 					[implBody appendFormat:@"	return %@;\n", origValue];
 					break;
 				} else {
 /*Randy420 start add*/
+					if ([[methodTypez objectAtIndex:argument-1] isEqualToString:@"id"]){
+						if (retType == 1 && retSubType == 2) {
+							origValue = [NSString stringWithFormat:@"[NSNumber numberWithInteger:%@]", origValue];
+						}
+					}
 					if ([[methodTypez objectAtIndex:argument-1] isEqualToString:@"bool"]){
 						if ([origValue intValue] == 0){
 							origValue = @"NO";
@@ -148,7 +163,7 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 							origValue = @"YES";
 						}
 					}
-/*Randy420 end add*/
+/*Randy420 finish add*/
 					[implBody appendFormat:@"	arg%i = %@;\n", argument, origValue];
 				}
 			}
@@ -157,19 +172,39 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 				if ([bashedMethodTypeValue containsString:@"void"]) {//Randy420 edit
 					if (overrideCount > 0) {
 						if (logos) {
-							[implBody appendString:@"	%orig;\n"];
+							[implBody appendString:@"	//%orig;\n"];
 						} else {
 							callsOrig = YES;
 							[implBody appendFormat:@"	%@%@;\n", origImplName, justArgCall];
 						}
+/*Randy420 start add*/
+					} else {
+							BOOL addToVoid = NO;
+							char override[2];
+							if (!finishVoid && askVoid){
+								while (1) {
+									printf("\n\n\n%s{\n	//orig;???\n}\nWould you like to add \"%%orig\" to this method? y/n:", realMethodName.UTF8String);
+									scanf("%1s", override);
+									if (strcmp(override,"y") == 0){
+										addToVoid = YES;
+										break;
+									} else if (strcmp(override,"n") == 0) {
+										break;
+									} else {
+										printf("---------------------\n|PLEASE ENTER Y or N|\n---------------------");
+									}
+								}
+									
+							}
+							if (finishVoid || addToVoid){
+								[implBody appendString:@"	%orig;\n"];
+							}else{
+								[implBody appendString:@"	//%orig;\n"];
+							}
+/*Randy420 add finish*/
 					}
 				} else {
-					if (logos) {
-						[implBody appendString:@"	return %orig;\n"];
-					} else {
-						callsOrig = YES;
-						[implBody appendFormat:@"	return %@%@;\n", origImplName, justArgCall];
-					}
+					[implBody appendString:@"	return %orig;\n"];
 				}
 			}
 
@@ -221,10 +256,10 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 					NSString *patchedClassName = [className stringByReplacingOccurrencesOfString:@"." withString:swiftPatchStr];
 					[xm appendFormat:@"%@ = objc_getClass(\"%@\")%@", patchedClassName, className, comma];
 				}
-				[xm appendString:@"\n}\n"];
+				[xm appendString:@"\n}"];
 			}
 		} else {
-			[constructor appendString:@"}\n"];
+			[constructor appendString:@"}"];
 			[xm appendString:constructor];
 		}
 		ret = [NSString stringWithString:xm];
@@ -252,7 +287,7 @@ static NSString *local(NSString *local, NSString *def){
 
 	return def;//[[NSBundle bundleWithPath:path] localizedStringForKey:local value:def table:@"fttTweak"];
 }
-/*Randy420 end add*/
+/*Randy420 finish add*/
 int main(int argc, char *argv[]) {
 	setuid(0);
 	seteuid(0);
@@ -264,7 +299,7 @@ int main(int argc, char *argv[]) {
 	BOOL dump = NO;
 	BOOL getPlist = NO;
 #endif
-	NSString *version = @"0.0.1";
+	NSString *version = @PACKAGE_VERSION;//Randy420 add
 	NSString *sandbox = GetNSString(@"folderPrefix", @"Randy", PREFS);//Randy420 edit
 	NSString *dumpFolder = GetNSString(@"dumpFolder", @"/var/mobile/tweaks/myFlex", PREFS);//Randy420 add
 
@@ -519,7 +554,7 @@ int main(int argc, char *argv[]) {
 	text = local(@"CREDIT", @"Flex to Theos by iPadKid358 & updated by Randy420");
 		printf("\n\n%s%s\n\n%s", greenColor, text.UTF8String, resetColor);
 	}
-/*Randy420 end add*/
+/*Randy420 finish add*/
 
 /*Randy420 start edit*/
 	if (!color) {
@@ -528,7 +563,7 @@ int main(int argc, char *argv[]) {
 		greenColor = "\x1B[0m";
 		resetColor = "\x1B[0m";
 	}
-/*Randy420 end edit*/
+/*Randy420 finish edit*/
 
 #pragma mark UPDATE
 /*Randy420 start add*/
@@ -572,7 +607,7 @@ int main(int argc, char *argv[]) {
 			return 1;
 		}
 	}
-/*Randy420 end add*/
+/*Randy420 finish add*/
 
 	NSDictionary *patch;
 	NSString *titleKey;
@@ -723,7 +758,6 @@ int main(int argc, char *argv[]) {
 					runCode = [NSString stringWithFormat:@"%@ %i", dumpAll, choose];//Randy420 add
 					[_420 RunCMD:runCode WaitUntilExit: YES];//Randy420 add
 				} else {
-					//NSLog(@"\nSwitch: %hhd\nShow: %hhd\n\n", switchedOn, showAll);
 					if (switchedOn || showAll)//Randy420 add
 						printf("  %s%d%s: %s\n", switchedOn ? greenColor : redColor, choose, resetColor, [allPatches[choose][@"name"] UTF8String]);//Randy420 edit
 				}
@@ -770,7 +804,7 @@ int main(int argc, char *argv[]) {
 			tempSB = [NSString stringWithFormat:@"%@%i", sandbox, sandBox++];
 		} while ([FM fileExistsAtPath:tempSB]);
 		sandbox = tempSB;
-/*Randy420 end add*/
+/*Randy420 finish add*/
 
 		NSError *createSandboxError;
 		[FM createDirectoryAtPath:sandbox withIntermediateDirectories:NO attributes:NULL error:&createSandboxError];
@@ -812,7 +846,7 @@ int main(int argc, char *argv[]) {
 
 		NSString *isDebug = GetNSString(@"debug", @"0", PREFS);
 		NSString *finalPackage = GetNSString(@"finalPackage", @"1", PREFS);
-/*Randy420 end add*/
+/*Randy420 finish add*/
 		NSString *title = [[name componentsSeparatedByCharactersInSet:charsOnly] componentsJoinedByString:@""];
 		NSMutableString *makefile = [NSMutableString stringWithFormat:@""
 		"DEBUG=%@\n"//Randy420 add
@@ -901,10 +935,10 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		title = [title lowercaseString];
-/*Randy420 end add*/
+/*Randy420 finish add*/
 		NSString *lauthor = [[[author componentsSeparatedByCharactersInSet:charsOnly] componentsJoinedByString:@""] lowercaseString];//Randy420 edit
 		NSString *description = [patch[descriptionKey] stringByReplacingOccurrencesOfString:@"\n" withString:@"\n "];
-/*Randy420 add start*/
+/*Randy420 start add*/
 		if (description.length <= 4) {
 			if (!adjustDescription){
 				text = local(@"COMPLETE_DUMP", @"Flex to theos complete resource dump");
@@ -933,7 +967,9 @@ int main(int argc, char *argv[]) {
 		"Version: %@\n", lauthor, title, name, author, email, description, author, email, version];//Randy420 edit
 		[control writeToFile:[sandbox stringByAppendingPathComponent:@"control"] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 		NSString *tweakFileName = [@"Tweak" stringByAppendingPathExtension:tweakFileExt];
-		genedCode = [genedCode stringByReplacingOccurrencesOfString:@" " withString:@""];//Randy420 add - removes weird random character that looks like a space but isnt.
+
+		genedCode = [[_420 cleanUp:[genedCode stringByReplacingOccurrencesOfString:@" " withString:@""]] stringByReplacingOccurrencesOfString:@"(null);" withString:@"%orig;"];//Randy420 add - removes weird random character that looks like a space but isnt. also sorts and cleans up the hooks etc
+
 		[genedCode writeToFile:[sandbox stringByAppendingPathComponent:tweakFileName] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 
 		if (output){
@@ -944,7 +980,7 @@ int main(int argc, char *argv[]) {
 			text1 = [NSString stringWithFormat:@"%@%@: %s%@%s\n", text1, text, cyanColor, [[FM currentDirectoryPath] stringByAppendingPathComponent:sandbox], resetColor];
 			printf("%s\n", text1.UTF8String);
 		}
-/*Randy420 add start*/
+/*Randy420 start add*/
 #pragma mark Make Deb
 		if (MakeTheos){
 			NSString *TheosMake = [[FM currentDirectoryPath] stringByAppendingPathComponent:sandbox];

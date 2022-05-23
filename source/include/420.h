@@ -6,8 +6,18 @@
 - (id)_deviceInfoForKey:(NSString *)key;  
 @end
 
-@interface _420Manager : NSObject
+
+@interface HookSorter: NSObject
+@property (strong, nonatomic) NSString *hookName;
+@property (strong, nonatomic) NSString *hookBody;
+@end
+
+
+@interface _420Manager : NSObject {
+
+}
 -(void) RunCMD:(NSString *)RunCMD WaitUntilExit:(BOOL)WaitUntilExit;
+-(NSString *)cleanUp:(NSString *)cleanUp;
 @end
 
 // NSTask.h
