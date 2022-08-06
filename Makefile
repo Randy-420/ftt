@@ -1,6 +1,8 @@
-SUBPROJECTS += source
+FINALPACKAGE = 1
 
-PACKAGE_VERSION=0.8
+export PACKAGE_VERSION=0.9
+
+SUBPROJECTS += source
 
 include $(THEOS)/makefiles/common.mk
 include $(THEOS_MAKE_PATH)/aggregate.mk

@@ -299,7 +299,7 @@ int main(int argc, char *argv[]) {
 	BOOL dump = NO;
 	BOOL getPlist = NO;
 #endif
-	NSString *version = @PACKAGE_VERSION;//Randy420 add
+	NSString *version = @"0.1";//Randy420 add
 	NSString *sandbox = GetNSString(@"folderPrefix", @"Randy", PREFS);//Randy420 edit
 	NSString *dumpFolder = GetNSString(@"dumpFolder", @"/var/mobile/tweaks/myFlex", PREFS);//Randy420 add
 
@@ -310,7 +310,7 @@ int main(int argc, char *argv[]) {
 	NSString *name;
 	NSString *patchID;
 	NSString *remote;
-	NSString *cversion = @"0.8";//Randy420 add
+	NSString *cversion = @PACKAGE_VERSION;//Randy420 add
 	NSString *email;//Randy420 add
 	NSString *runCode;//Randy420 add
 	NSString *durl;//Randy420 add
@@ -600,7 +600,7 @@ int main(int argc, char *argv[]) {
 /*Randy420 start add*/
 #if TARGET_OS_IPHONE
 			[UIPasteboard.generalPasteboard setValue:durl forPasteboardType:(id)kUTTypeUTF8PlainText];
-			text = local(@"DOWNLOAD_FROM", @"Repo link copied to ClipBoard");
+			text = local(@"REPO_COPIED", @"Repo link copied to ClipBoard");
 
 			printf("%s%s%s\n\n", greenColor, text.UTF8String, resetColor);
 #endif

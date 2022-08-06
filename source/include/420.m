@@ -1,4 +1,3 @@
-#include <spawn.h>
 #include "420.h"
 
 #define _POSIX_SPAWN_DISABLE_ASLR 0x0100

@@ -1,5 +1,3 @@
-FINALPACKAGE = 1
-
 ifeq ($(MACOS),1)
     ARCHS = i386 x86_64
     TARGET = macosx:clang::10.10
