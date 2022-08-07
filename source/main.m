@@ -299,10 +299,12 @@ int main(int argc, char *argv[]) {
 	BOOL dump = NO;
 	BOOL getPlist = NO;
 #endif
-	NSString *version = @"0.1";//Randy420 add
+	NSString *version = GetNSString(@"baseVersion", @"4.2.0", PREFS);;//Randy420 add
 	NSString *sandbox = GetNSString(@"folderPrefix", @"Randy", PREFS);//Randy420 edit
 	NSString *dumpFolder = GetNSString(@"dumpFolder", @"/var/mobile/tweaks/myFlex", PREFS);//Randy420 add
-
+	if ([dumpFolder isEqualToString:@""])//Randy420 add
+		dumpFolder = @"/var/mobile/tweaks/myFlex";//Randy420 add
+	
 	if (![[dumpFolder substringToIndex:1] isEqualToString:@"/"])//Randy420 add
 		dumpFolder = [NSString stringWithFormat:@"/%@", dumpFolder];//Randy420 add
 
@@ -551,7 +553,7 @@ int main(int argc, char *argv[]) {
 	}
 /*Randy420 start add*/
 	if (adjustDescription){
-	text = local(@"CREDIT", @"Flex to Theos by iPadKid358 & updated by Randy420");
+		text = local(@"CREDIT", @"Flex to Theos by iPadKid358 & updated by Randy420");
 		printf("\n\n%s%s\n\n%s", greenColor, text.UTF8String, resetColor);
 	}
 /*Randy420 finish add*/
@@ -638,7 +640,7 @@ int main(int argc, char *argv[]) {
 				return 1;
 			}
 
-			// Flex sends a few more things, but these are the only required parameters
+//Flex sends a few more things, but these are the only required parameters
 			NSDictionary *bodyDict = @{
 									   @"patchID":patchID,
 									   @"deviceID":udid,
@@ -881,12 +883,12 @@ int main(int argc, char *argv[]) {
 		NSString *author = patch[@"author"];
 /*Randy420 start add*/
 			if (!author) {
-			author = GetNSString(@"prefName", @"default", PREFS);
+			author = GetNSString(@"prefName", @"defaultDev", PREFS);
 
 			email = GetNSString(@"prefEmail", @"default@default.com", PREFS);
 		}
 
-		if ([author isEqualToString:@"default"]) {
+		if ([author isEqualToString:@"defaultDev"]) {
 			text = local(@"DEV_NAME", @"please enter your dev name");
 			printf("%s%s%s\n", redColor, text.UTF8String, resetColor);
 

@@ -13,7 +13,7 @@ include $(THEOS)/makefiles/common.mk
 
 TOOL_NAME = ftt
 ftt_FILES = main.m include/420.m
-ftt_CFLAGS = -fobjc-arc -DPACKAGE_VERSION=\"$(PACKAGE_VERSION)\"
+ftt_CFLAGS = -fobjc-arc -DPACKAGE_VERSION=\"$(PKG_VERSION)\"
 
 include $(THEOS_MAKE_PATH)/tool.mk
 include $(THEOS_MAKE_PATH)/aggregate.mk
