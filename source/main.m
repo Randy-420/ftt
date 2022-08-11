@@ -172,7 +172,7 @@ NSString *codeFromFlexPatch(NSDictionary *patch, BOOL comments, BOOL *uikit, BOO
 				if ([bashedMethodTypeValue containsString:@"void"]) {//Randy420 edit
 					if (overrideCount > 0) {
 						if (logos) {
-							[implBody appendString:@"	//%orig;\n"];
+							[implBody appendString:@"	%orig;\n"];
 						} else {
 							callsOrig = YES;
 							[implBody appendFormat:@"	%@%@;\n", origImplName, justArgCall];
@@ -578,11 +578,24 @@ int main(int argc, char *argv[]) {
 		durl = ufile[@"address"];
 		nversion = ufile[@"version"];
 
-		if ([cversion isEqualToString:nversion]){
+		float newVersion = [nversion floatValue];
+		float currentVersion = [cversion floatValue];
+
+		if (currentVersion == newVersion){
 			text = local(@"NEWEST", @"You're using the newest version of ftt! Version");
 			printf("%s%s: '%s%s%s'\n\n",greenColor, text.UTF8String, cyanColor, [cversion UTF8String], resetColor);
-			return 1;
-		} else {
+		} else if (currentVersion < newVersion) {
+			text = local(@"BETA_RUN", @"You're running a BETA version of ftt");
+			text1 = [NSString stringWithFormat:@"%s%@:%s\n", cyanColor, text, resetColor];
+
+			text = local(@"CURRENT", @"Current Version");
+			text1 = [NSString stringWithFormat:@"%@%@: '%s%@%s'\n", text1, text, greenColor, cversion, resetColor];
+
+			text = local(@"NEWEST_VERSION", @"Newest Version");
+			text1 = [NSString stringWithFormat:@"%@%@: '%s%@%s'\n", text1, text, cyanColor, nversion, resetColor];
+
+			printf("%s", text1.UTF8String);
+		}else{
 			text = local(@"OLD_RUN", @"You're running an older version of ftt");
 			text1 = [NSString stringWithFormat:@"%s%@:%s\n", redColor, text, resetColor];
 
@@ -606,8 +619,8 @@ int main(int argc, char *argv[]) {
 
 			printf("%s%s%s\n\n", greenColor, text.UTF8String, resetColor);
 #endif
-			return 1;
 		}
+		return 0;
 	}
 /*Randy420 finish add*/
 
