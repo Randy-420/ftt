@@ -344,6 +344,8 @@ int main(int argc, char *argv[]) {
 	BOOL useDumpFolder = GetBool(@"useDumpFolder", YES, PREFS);//Randy420 add
 	BOOL showAll = GetBool(@"showAll", YES, PREFS);//Randy420 add
 	BOOL autoUpdateCheck = GetBool(@"autoUpdateCheck", YES, PREFS);
+	BOOL alertOnce = GetBool(@"alertOnce", YES, PREFS);
+	BOOL shouldAlert = YES;
 
 	const char *cyanColor = "\x1B[36m";//Randy420 edit
 	const char *redColor = "\x1B[31m";//Randy420 edit
@@ -396,7 +398,13 @@ int main(int argc, char *argv[]) {
 
 			printf("%s%s%s\n\n", greenColor, text.UTF8String, resetColor);
 #endif
-			sleep(5);
+			if (alertOnce)
+				shouldAlert = GetBool(nversion, YES, PREFS);
+
+			if (shouldAlert)
+				sleep(5);
+
+			setObjectForKey(@NO, nversion);
 		}
 	}
 /*Randy420 finish add*/
@@ -973,15 +981,8 @@ int main(int argc, char *argv[]) {
 			printf("%s\n%sY%s/%sN%s: ", text1.UTF8String, greenColor, resetColor, redColor, resetColor);
 			scanf(" %1s", credentials);
 			if ([[NSString stringWithCString:credentials encoding:1] isEqualToString:@"y"]) {
-				NSMutableDictionary *preferences;
-				if ([FM fileExistsAtPath:@"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist"]) {
-					preferences = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist"];
-				} else {
-					preferences = [[NSMutableDictionary alloc] init];
-				}
-				[preferences setObject:author forKey: @"prefName"];
-				[preferences setObject:email forKey: @"prefEmail"];
-				[preferences writeToFile:@"/var/mobile/Library/Preferences/com.randy420.fttprefs.plist" atomically:YES];
+				setNSStringForKey(author, @"prefName");
+				setNSStringForKey(email, @"prefEmail");
 
 				text = local(@"SAVED_CREDENTIALS", @"Credentials saved");
 				printf("%s!%s\n\n", greenColor, resetColor);
