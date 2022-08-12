@@ -17,3 +17,5 @@ static int GetInt(NSString *pkey, int defaultValue, NSString *plst) {
 
 	return [Dict objectForKey:pkey] ? [[Dict objectForKey:pkey] intValue] : defaultValue;
 }
+
+void set

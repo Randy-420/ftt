@@ -318,7 +318,6 @@ int main(int argc, char *argv[]) {
 	NSString *durl;//Randy420 add
 	NSString *nversion;//Randy420 add
 	NSString *myweb = @"https://Randy-420.GitHub.io";//Randy420 add
-
 	NSScanner *scanner;//Randy420 add
 	NSMutableString *strippedString;//Randy420 add
 	NSCharacterSet *keep;//Randy420 add
@@ -326,6 +325,9 @@ int main(int argc, char *argv[]) {
 	__block NSString *text;//Randy420 add
 	NSString *text1;//Randy420 add
 	NSString *helpme;//Randy420 add
+	NSString *updatePath = [NSString stringWithFormat:@"%@/ftt/ftt.plist", myweb];
+
+	float newVersion, currentVersion;
 
 	BOOL adjustDescription = YES;//Randy420 add
 	BOOL tweak = YES;
@@ -341,6 +343,7 @@ int main(int argc, char *argv[]) {
 	BOOL totalDump = NO;//Randy420 add
 	BOOL useDumpFolder = GetBool(@"useDumpFolder", YES, PREFS);//Randy420 add
 	BOOL showAll = GetBool(@"showAll", YES, PREFS);//Randy420 add
+	BOOL autoUpdateCheck = GetBool(@"autoUpdateCheck", YES, PREFS);
 
 	const char *cyanColor = "\x1B[36m";//Randy420 edit
 	const char *redColor = "\x1B[31m";//Randy420 edit
@@ -359,6 +362,44 @@ int main(int argc, char *argv[]) {
 
 	NSFileManager *FM = NSFileManager.defaultManager;//Randy420 add
 
+/*Randy420 start add*/
+#pragma mark AUTO-UP-TO-DATE-CHECK
+	if (autoUpdateCheck) {
+		ufile = [NSDictionary dictionaryWithContentsOfURL:[NSURL URLWithString:updatePath]];
+
+		durl = ufile[@"address"];
+		nversion = ufile[@"version"];
+
+		newVersion = [nversion floatValue];
+		currentVersion = [cversion floatValue];
+
+		if (currentVersion < newVersion) {
+			text = local(@"OLD_RUN", @"You're running an older version of ftt");
+			text1 = [NSString stringWithFormat:@"%s%@:%s\n", redColor, text, resetColor];
+
+			text = local(@"CURRENT", @"Current Version");
+			text1 = [NSString stringWithFormat:@"%@%@: '%s%@%s'\n", text1, text, redColor, cversion, resetColor];
+
+			text = local(@"NEWEST_VERSION", @"Newest Version");
+			text1 = [NSString stringWithFormat:@"%@%@: '%s%@%s'\n", text1, text, cyanColor, nversion, resetColor];
+
+			text = local(@"DOWNLOAD_FROM", @"You can download the newest version from");
+			text1 = [NSString stringWithFormat:@"%@%@: '%s%@%s'\n", text1, text, cyanColor, durl, resetColor];
+
+			printf("%s", text1.UTF8String);
+
+			hidesLog = freopen("/dev/null", "w", stderr);
+			fclose(hidesLog);
+#if TARGET_OS_IPHONE
+			[UIPasteboard.generalPasteboard setValue:durl forPasteboardType:(id)kUTTypeUTF8PlainText];
+			text = local(@"REPO_COPIED", @"Repo link copied to ClipBoard");
+
+			printf("%s%s%s\n\n", greenColor, text.UTF8String, resetColor);
+#endif
+			sleep(5);
+		}
+	}
+/*Randy420 finish add*/
 	text = local(@"USAGE", @"USAGE");
 	helpme = [NSString stringWithFormat:@"%s%@: %s ftt", greenColor, text, cyanColor];
 
@@ -567,24 +608,24 @@ int main(int argc, char *argv[]) {
 	}
 /*Randy420 finish edit*/
 
-#pragma mark UPDATE
+#pragma mark UP-TO-DATE-CHECK
 /*Randy420 start add*/
 	if (update) {
 		text = local(@"UPDATE_CHECK", @"Checking for update...");
 		printf("%s%s%s\n", greenColor, text.UTF8String, resetColor);
-		NSString *updatePath = [NSString stringWithFormat:@"%@/ftt/ftt.plist", myweb];
+
 		ufile = [NSDictionary dictionaryWithContentsOfURL:[NSURL URLWithString:updatePath]];
 
 		durl = ufile[@"address"];
 		nversion = ufile[@"version"];
 
-		float newVersion = [nversion floatValue];
-		float currentVersion = [cversion floatValue];
+		newVersion = [nversion floatValue];
+		currentVersion = [cversion floatValue];
 
 		if (currentVersion == newVersion){
 			text = local(@"NEWEST", @"You're using the newest version of ftt! Version");
 			printf("%s%s: '%s%s%s'\n\n",greenColor, text.UTF8String, cyanColor, [cversion UTF8String], resetColor);
-		} else if (currentVersion < newVersion) {
+		} else if (currentVersion > newVersion) {
 			text = local(@"BETA_RUN", @"You're running a BETA version of ftt");
 			text1 = [NSString stringWithFormat:@"%s%@:%s\n", cyanColor, text, resetColor];
 
